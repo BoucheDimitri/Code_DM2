@@ -54,7 +54,7 @@ def update_mus(xs, z):
     return mus
 
 
-def iterate_kmeans(xs, k, nits):
+def iterate_kmeans(xs, k, nits=20, epsilon=0.1):
     """
     Iterate kmeans updates (1: centroid updates, 2: reassignement)
 
@@ -67,11 +67,25 @@ def iterate_kmeans(xs, k, nits):
         tuple: mus (centroid matrix), z (assignement vector)
     """
     z = random_init(xs, k)
+    objs = [np.inf]
     for i in range(0, nits):
         mus = update_mus(xs, z)
+        objs.append(objective_func(xs, mus, z))
         z = assign_xs(xs, mus)
-        print(i)
+        if np.abs(objs[i+1] - objs[i]) < epsilon:
+            return mus, z
+        # print("Objective value: " + str(objs[i+1]))
     return mus, z
+
+
+def objective_func(xs, mus, z):
+    dists = distance.cdist(xs.T, mus.T) ** 2
+    k = np.unique(z).shape[0]
+    obj = 0
+    for i in range(0, k):
+        inds = (z == i).astype(int)
+        obj += np.sum(dists[:, i] * inds)
+    return obj
 
 
 def clustered_table(xs, z):
@@ -90,12 +104,13 @@ def clustered_table(xs, z):
     return xspd
 
 
-def plot_clusters(xs, z):
+def plot_clusters(xs, mus, z):
     """
-    Plot data in different colors according to their cluster assignement
+    Plot data in different colors according to their cluster assignement and the centroids
 
     Params:
         xs (np.ndarray): the data matrix (nfeatures, nsamples)
+        mus (np.ndarray): the centroids (nfeatures, nclusters)
         z (np.ndarray): vector of assignement to clusters (nsamples, )
 
     Returns:
@@ -106,3 +121,21 @@ def plot_clusters(xs, z):
     fig, ax = plt.subplots()
     for i in range(0, k):
         ax.scatter(xspd[xspd.c == i].x0, xspd[xspd.c == i].x1)
+        ax.scatter(mus[0, i], mus[1, i], c="k", marker="^", s=200)
+
+
+def compare_centroids(xs, k, nsims, maxit=50, epsilon=0.1):
+    mus_dict = {}
+    for i in range(0, k):
+        mus_dict[i] = np.zeros((xs.shape[0], nsims))
+    for j in range(0, nsims):
+        mus, z = iterate_kmeans(xs, k, maxit, epsilon)
+        print(j)
+        for i in range(0, k):
+            mus_dict[i][:, j] = mus[:, i]
+    return mus_dict
+
+
+def plot_centroids(mus_dict, k):
+    for i in range(0, k):
+        plt.scatter(mus_dict[i][0, :], mus_dict[i][1, :])
