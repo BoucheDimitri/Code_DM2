@@ -75,15 +75,15 @@ def plot_clusters_ellipses(xs, mus, sigmas, nsig, z, ax):
     xspd = clustered_table(xs, z)
     k = np.unique(z).shape[0]
     for j in range(0, k):
-        ax.scatter(xspd[xspd.c == j].x0, xspd[xspd.c == j].x1)
-        ax.scatter(mus[0, j], mus[1, j], c="k", marker="^", s=200)
+        ax.scatter(xspd[xspd.c == j].x0, xspd[xspd.c == j].x1, s=50)
+        ax.scatter(mus[0, j], mus[1, j], c="k", marker="^", s=250)
         lamb, u = np.linalg.eig(sigmas[j])
         lamb = np.sqrt(lamb)
         ell = Ellipse(xy=(mus[0, j], mus[1, j]),
                       width=lamb[0] * nsig * 2,
                       height=lamb[1] * nsig * 2,
                       angle=np.rad2deg(np.arccos(u[0, 0])),
-                      linewidth=2.5,
+                      linewidth=3,
                       facecolor="none",
                       edgecolor='C' + str(j))
         ax.add_artist(ell)
@@ -104,5 +104,5 @@ def plot_clusters(xs, mus, z, ax):
     xspd = clustered_table(xs, z)
     k = np.unique(z).shape[0]
     for j in range(0, k):
-        ax.scatter(xspd[xspd.c == j].x0, xspd[xspd.c == j].x1)
-        ax.scatter(mus[0, j], mus[1, j], c="k", marker="^", s=200)
+        ax.scatter(xspd[xspd.c == j].x0, xspd[xspd.c == j].x1, s=50)
+        ax.scatter(mus[0, j], mus[1, j], c="k", marker="^", s=250)

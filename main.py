@@ -9,7 +9,7 @@ import kmeans
 import utils
 
 # Plotting parameters
-plt.rcParams.update({'font.size': 22})
+plt.rcParams.update({'font.size': 25})
 
 # Reload module (for developpement)
 importlib.reload(em)
@@ -32,6 +32,7 @@ mus, z = kmeans.iterate_kmeans(x, k, nits=100, epsilon=0.001)
 # Plot clusters and centers
 fig1, ax1 = plt.subplots()
 utils.plot_clusters(x, mus, z, ax1)
+plt.title("K-means clustering on training data")
 
 
 # Compare several runs of k-means with different random initializations
@@ -48,7 +49,7 @@ mus_0, z = kmeans.iterate_kmeans(x, 4)
 pi_0 = utils.cluster_repartition(z)
 sigmas_0 = utils.clusters_cov(x, z)
 # Iterate EM
-pi_diag, mus_diag, sigmas_diag, qs_diag = em.iterate_em(x, pi_0, mus_0, sigmas_0, 100, 0.0001, diag=True)
+pi_diag, mus_diag, sigmas_diag, qs_diag = em.iterate_em(x, pi_0, mus_0, sigmas_0, 200, 0.00001, diag=True)
 # Predict labels using the parameters learned by EM
 ztrain_diag = em.assign_cluster(x, pi_diag, mus_diag, sigmas_diag)
 # Plot the results
