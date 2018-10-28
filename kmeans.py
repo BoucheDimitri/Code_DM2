@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.spatial import distance
-import pandas as pd
 import matplotlib.pyplot as plt
 
 
@@ -62,6 +61,7 @@ def iterate_kmeans(xs, k, nits=100, epsilon=0.001):
         xs (np.ndarray): the data matrix (nfeatures, nsamples)
         k (int): n clusters
         nits (int): numbers of iterations to perform
+        epsilon (float): stopping criterion based on the delta of the distortion
 
     Returns:
         tuple: mus (centroid matrix), z (assignement vector)
@@ -70,7 +70,7 @@ def iterate_kmeans(xs, k, nits=100, epsilon=0.001):
     objs = [np.inf]
     for i in range(0, nits):
         mus = update_mus(xs, z)
-        objs.append(objective_func(xs, mus, z))
+        objs.append(distortion(xs, mus, z))
         z = assign_xs(xs, mus)
         if np.abs(objs[i+1] - objs[i]) < epsilon:
             return mus, z
@@ -78,7 +78,18 @@ def iterate_kmeans(xs, k, nits=100, epsilon=0.001):
     return mus, z
 
 
-def objective_func(xs, mus, z):
+def distortion(xs, mus, z):
+    """
+    Global distortion measure
+
+    Params:
+        xs (np.ndarray): the data matrix (nfeatures, nsamples)
+        mus (np.ndarray): the centroids (nfeatures, nclusters)
+        z (np.ndarray): vector of assignement to clusters (nsamples, )
+
+    Returns:
+        float: the global distortion measure
+    """
     dists = distance.cdist(xs.T, mus.T) ** 2
     k = np.unique(z).shape[0]
     obj = 0
@@ -89,6 +100,19 @@ def objective_func(xs, mus, z):
 
 
 def compare_several_runs(xs, k, nsims, nits=100, epsilon=0.001):
+    """
+    Global distortion measure
+
+    Params:
+        xs (np.ndarray): the data matrix (nfeatures, nsamples)
+        k (int): number of clusters
+        nsims (int): number of runs of kmeans
+        nits (int): numbers of iterations to perform
+        epsilon (float): stopping criterion based on the delta of the distortion
+
+    Returns:
+        tuple: dictionnary of estimated centers and list of optimal distortion values reached
+    """
     mus_dict = {}
     objs = []
     for i in range(0, k):
@@ -96,12 +120,15 @@ def compare_several_runs(xs, k, nsims, nits=100, epsilon=0.001):
     for j in range(0, nsims):
         mus, z = iterate_kmeans(xs, k, nits, epsilon)
         print(j)
-        objs.append(objective_func(xs, mus, z))
+        objs.append(distortion(xs, mus, z))
         for i in range(0, k):
             mus_dict[i][:, j] = mus[:, i]
     return mus_dict, objs
 
 
 def plot_centroids(mus_dict, k):
+    """
+    Plot the centers dispertion from the dict of centers from the compare_several_runs function
+    """
     for i in range(0, k):
         plt.scatter(mus_dict[i][0, :], mus_dict[i][1, :], c="k")
