@@ -1,12 +1,18 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
-import matplotlib as mpl
-mpl.rcParams['lines.linewidth'] = 5
 
 
 def cluster_repartition(z):
+    """
+    Plot data in different colors according to their cluster assignement as well as the centers
+
+    Params:
+        z (np.ndarray): vector of assignement to clusters (nsamples, )
+
+    Returns:
+        np.ndarray: the empirical distribution of data in the clusters
+    """
     nc = np.unique(z).shape[0]
     n = z.shape[0]
     pi = np.zeros((nc, ))
@@ -32,6 +38,16 @@ def clustered_table(xs, z):
 
 
 def clusters_cov(xs, z):
+    """
+    Plot data in different colors according to their cluster assignement as well as the centers
+
+    Params:
+        xs (np.ndarray): the data matrix (nfeatures, nsamples)
+        z (np.ndarray): vector of assignement to clusters (nsamples, )
+
+    Returns:
+        list: list intra clusters covariance matrices
+    """
     xspd = clustered_table(xs, z)
     sigmas = []
     d = xs.shape[0]
@@ -41,31 +57,23 @@ def clusters_cov(xs, z):
     return sigmas
 
 
-def clusters_cov_diag(xs, z):
-    xspd = clustered_table(xs, z)
-    sigmas = []
-    d = xs.shape[0]
-    for c in np.unique(z):
-        cvc = xspd[xspd.c == c].cov().values
-        sigmas.append(np.eye(d) * np.mean(np.diag(cvc)))
-    return sigmas
-
-
-def plot_clusters_ellipses(xs, mus, sigmas, nsig, z):
+def plot_clusters_ellipses(xs, mus, sigmas, nsig, z, ax):
     """
-    Plot data in different colors according to their cluster assignement and the centroids
+    Plot data in different colors according to their cluster assignement, the centroids and the covariance ellipses
 
     Params:
         xs (np.ndarray): the data matrix (nfeatures, nsamples)
         mus (np.ndarray): the centroids (nfeatures, nclusters)
+        sigmas (list): list of covariance matrices
+        nsig (float): number of +- sigmas for the ellipses
         z (np.ndarray): vector of assignement to clusters (nsamples, )
+        ax (matplotlib.axes._subplots.AxesSubplot): ax where to plot
 
     Returns:
         nonetype: None
     """
     xspd = clustered_table(xs, z)
     k = np.unique(z).shape[0]
-    fig, ax = plt.subplots()
     for j in range(0, k):
         ax.scatter(xspd[xspd.c == j].x0, xspd[xspd.c == j].x1)
         ax.scatter(mus[0, j], mus[1, j], c="k", marker="^", s=200)
@@ -75,14 +83,13 @@ def plot_clusters_ellipses(xs, mus, sigmas, nsig, z):
                       width=lamb[0] * nsig * 2,
                       height=lamb[1] * nsig * 2,
                       angle=np.rad2deg(np.arccos(u[0, 0])),
-                      linewidth=0,
+                      linewidth=2.5,
                       facecolor="none",
                       edgecolor='C' + str(j))
-        print(ell.get_lw())
         ax.add_artist(ell)
 
 
-def plot_clusters(xs, mus, z):
+def plot_clusters(xs, mus, z, ax):
     """
     Plot data in different colors according to their cluster assignement and the centroids
 
@@ -96,7 +103,6 @@ def plot_clusters(xs, mus, z):
     """
     xspd = clustered_table(xs, z)
     k = np.unique(z).shape[0]
-    fig, ax = plt.subplots()
     for j in range(0, k):
         ax.scatter(xspd[xspd.c == j].x0, xspd[xspd.c == j].x1)
         ax.scatter(mus[0, j], mus[1, j], c="k", marker="^", s=200)
