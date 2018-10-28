@@ -88,6 +88,15 @@ def objective_func(xs, mus, z):
     return obj
 
 
+def cluster_repartition(z):
+    nc = np.unique(z).shape[0]
+    n = z.shape[0]
+    pi = np.zeros((nc, ))
+    for c in np.unique(z):
+        pi[c] = z[z == c].shape[0] / n
+    return pi
+
+
 def clustered_table(xs, z):
     """
     Dataset and cluster assignement in a pandas dataframe
@@ -102,6 +111,16 @@ def clustered_table(xs, z):
     xspd = pd.DataFrame(data=xs.T, columns=["x0", "x1"])
     xspd["c"] = z
     return xspd
+
+
+def clusters_cov(xs, z):
+    xspd = clustered_table(xs, z)
+    sigmas = []
+    d = xs.shape[0]
+    for c in np.unique(z):
+        cvc = xspd[xspd.c == c].cov().values
+        sigmas.append(cvc[:d, :d])
+    return sigmas
 
 
 def plot_clusters(xs, mus, z):

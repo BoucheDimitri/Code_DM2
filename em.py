@@ -2,6 +2,14 @@ import numpy as np
 import scipy.stats as stats
 
 
+def multi_gaussian(xvec, mu, sigma):
+    d = xvec.shape[0]
+    norm = np.power(np.pi, 0.5 * d) * np.sqrt(np.linalg.det(sigma))
+    sigma_inv = np.linalg.inv(sigma)
+    intraexp = - 0.5 * np.dot(np.dot((xvec - mu).T, sigma_inv), xvec - mu)
+    return (1 / norm) * np.exp(intraexp)
+
+
 def g_pdfs(mus, sigmas):
     """
     List of Gaussian pdf functions for the different parameters: [f(., mu_1, sigma_1),..., f(., mu_k, sigma_k)]
@@ -16,7 +24,8 @@ def g_pdfs(mus, sigmas):
     k = len(sigmas)
     pdfs = []
     for j in range(0, k):
-        gj = lambda xvec: stats.multivariate_normal.pdf(xvec, mus[:, j], sigmas[j])
+        # gj = lambda xvec: stats.multivariate_normal.pdf(xvec, mus[:, j], sigmas[j])
+        gj = lambda  xvec: multi_gaussian(xvec, mus[:, j], sigmas[j])
         pdfs.append(gj)
     return pdfs
 
@@ -58,16 +67,10 @@ def pz_given_x(x, pi, mus, sigmas):
     pzgx = np.zeros((k, n))
     pdfs = g_pdfs(mus, sigmas)
     for i in range(0, n):
-        # sumj = 0
         for j in range(0, k):
-            pzgx_ij = pi[j] * pdfs[j](x[:, i])
-            # print(pzgx_ij)
-            pzgx[j, i] = pzgx_ij
-            # sumj += pi[j] * pzgx_ij
-        # pzgx[:, i] *= (1 / sumj)
-    for i in range(0, n):
-        print(np.sum(pzgx[:, i]))
-        pzgx[:, i] *= (1 / np.sum(pzgx[:, i]))
+            pzgx[j, i] = pi[j] * pdfs[j](x[:, i])
+    # for i in range(0, n):
+    #     pzgx[:, i] *= (1 / np.sum(pzgx[:, i]))
     return pzgx
 
 
@@ -117,7 +120,7 @@ def e_computation(x, pi_t, mus_t, sigmas_t, pi_tplus1, mus_tplus1, sigmas_tplus1
 
 
 def m_step_pi(pzgx):
-    pi_tplus1 = (1 / np.sum(pzgx)) * np.sum(pzgx, axis=0)
+    pi_tplus1 = (1 / np.sum(pzgx)) * np.sum(pzgx, axis=1)
     return pi_tplus1
 
 
