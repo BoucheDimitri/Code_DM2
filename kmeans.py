@@ -54,7 +54,7 @@ def update_mus(xs, z):
     return mus
 
 
-def iterate_kmeans(xs, k, nits=20, epsilon=0.1):
+def iterate_kmeans(xs, k, nits=100, epsilon=0.001):
     """
     Iterate kmeans updates (1: centroid updates, 2: reassignement)
 
@@ -88,71 +88,18 @@ def objective_func(xs, mus, z):
     return obj
 
 
-def cluster_repartition(z):
-    nc = np.unique(z).shape[0]
-    n = z.shape[0]
-    pi = np.zeros((nc, ))
-    for c in np.unique(z):
-        pi[c] = z[z == c].shape[0] / n
-    return pi
-
-
-def clustered_table(xs, z):
-    """
-    Dataset and cluster assignement in a pandas dataframe
-
-    Params:
-        xs (np.ndarray): the data matrix (nfeatures, nsamples)
-        z (np.ndarray): vector of assignement to clusters (nsamples, )
-
-    Returns:
-        pd.core.frame.DataFrame
-    """
-    xspd = pd.DataFrame(data=xs.T, columns=["x0", "x1"])
-    xspd["c"] = z
-    return xspd
-
-
-def clusters_cov(xs, z):
-    xspd = clustered_table(xs, z)
-    sigmas = []
-    d = xs.shape[0]
-    for c in np.unique(z):
-        cvc = xspd[xspd.c == c].cov().values
-        sigmas.append(cvc[:d, :d])
-    return sigmas
-
-
-def plot_clusters(xs, mus, z):
-    """
-    Plot data in different colors according to their cluster assignement and the centroids
-
-    Params:
-        xs (np.ndarray): the data matrix (nfeatures, nsamples)
-        mus (np.ndarray): the centroids (nfeatures, nclusters)
-        z (np.ndarray): vector of assignement to clusters (nsamples, )
-
-    Returns:
-        nonetype: None
-    """
-    xspd = clustered_table(xs, z)
-    k = np.unique(z).shape[0]
-    fig, ax = plt.subplots()
-    for i in range(0, k):
-        ax.scatter(xspd[xspd.c == i].x0, xspd[xspd.c == i].x1)
-        ax.scatter(mus[0, i], mus[1, i], c="k", marker="^", s=200)
-
-
-def compare_centroids(xs, k, nsims, maxit=50, epsilon=0.1):
+def compare_several_runs(xs, k, nsims, maxit=50, epsilon=0.1):
     mus_dict = {}
+    objs = []
     for i in range(0, k):
         mus_dict[i] = np.zeros((xs.shape[0], nsims))
     for j in range(0, nsims):
         mus, z = iterate_kmeans(xs, k, maxit, epsilon)
         print(j)
+        objs.append(objective_func(xs, mus, z))
         for i in range(0, k):
             mus_dict[i][:, j] = mus[:, i]
-    return mus_dict
+    return mus_dict, objs
 
 
 def plot_centroids(mus_dict, k):

@@ -1,5 +1,4 @@
 import numpy as np
-import scipy.stats as stats
 
 
 def multi_gaussian(xvec, mu, sigma):
@@ -8,45 +7,6 @@ def multi_gaussian(xvec, mu, sigma):
     sigma_inv = np.linalg.inv(sigma)
     intraexp = - 0.5 * np.dot(np.dot((xvec - mu).T, sigma_inv), xvec - mu)
     return (1 / norm) * np.exp(intraexp)
-
-
-def g_pdfs(mus, sigmas):
-    """
-    List of Gaussian pdf functions for the different parameters: [f(., mu_1, sigma_1),..., f(., mu_k, sigma_k)]
-
-    Params:
-        mus (np.ndarray): the mus stacked in columns (nfeatures, ngaussians)
-        sigmas (list): list of covariance matrices, len(sigmas) = ngaussians and sigmas[j] = sigma_j
-
-    Returns:
-        list: a list of func
-    """
-    k = len(sigmas)
-    pdfs = []
-    for j in range(0, k):
-        # gj = lambda xvec: stats.multivariate_normal.pdf(xvec, mus[:, j], sigmas[j])
-        gj = lambda  xvec: multi_gaussian(xvec, mus[:, j], sigmas[j])
-        pdfs.append(gj)
-    return pdfs
-
-
-def log_g_pdfs(mus, sigmas):
-    """
-    List of Gaussian logpdf functions for the different parameters: [log f(., mu_1, sigma_1),..., log f(., mu_k, sigma_k)]
-
-    Params:
-        mus (np.ndarray): the mus stacked in columns (nfeatures, ngaussians)
-        sigmas (list): list of covariance matrices, len(sigmas) = ngaussians and sigmas[j] = sigma_j
-
-    Returns:
-        list: a list of func
-    """
-    k = len(sigmas)
-    pdfs = []
-    for j in range(0, k):
-        gj = lambda xvec: stats.multivariate_normal.logpdf(xvec, mus[:, j], sigmas[j])
-        pdfs.append(gj)
-    return pdfs
 
 
 def pz_given_x(x, pi, mus, sigmas):
@@ -65,12 +25,12 @@ def pz_given_x(x, pi, mus, sigmas):
     k = pi.shape[0]
     n = x.shape[1]
     pzgx = np.zeros((k, n))
-    pdfs = g_pdfs(mus, sigmas)
+    for j in range(k):
+        for i in range(n):
+            pzgx[j, i] = pi[j] * multi_gaussian(x[:, i], mus[:, j], sigmas[j])
     for i in range(0, n):
-        for j in range(0, k):
-            pzgx[j, i] = pi[j] * pdfs[j](x[:, i])
-    # for i in range(0, n):
-    #     pzgx[:, i] *= (1 / np.sum(pzgx[:, i]))
+        pzgx[:, i] *= (1 / np.sum(pzgx[:, i]))
+    pzgx /= pzgx.sum(0)
     return pzgx
 
 
@@ -88,12 +48,19 @@ def log_gmatrix(x, mus, sigmas):
     """
     n = x.shape[1]
     k = len(sigmas)
-    log_pdfs = log_g_pdfs(mus, sigmas)
     gmat = np.zeros((k, n))
     for i in range(0, n):
         for j in range(0, k):
-            gmat[j, i] = log_pdfs[j](x[:, i])
+            gmat[j, i] = np.log(multi_gaussian(x[:, i], mus[:, j], sigmas[j]))
     return gmat
+
+
+def test_propto_eye(sigmas):
+    test = (1 / sigmas[0][0, 0]) * sigmas[0] - np.eye(sigmas[0].shape[0]) == np.zeros(sigmas[0].shape)
+    if np.all(test):
+        return 1
+    else:
+        return 0
 
 
 def e_computation(x, pi_t, mus_t, sigmas_t, pi_tplus1, mus_tplus1, sigmas_tplus1):
@@ -133,6 +100,22 @@ def m_step_mus(x, pzgx):
     return mus_tplus1
 
 
+def m_step_sigmas_diag(x, pzgx, mus_tplus1):
+    n = x.shape[1]
+    k = pzgx.shape[0]
+    d = x.shape[0]
+    sigmas1d = np.zeros((k, ))
+    for j in range(0, k):
+        for i in range(0, n):
+            xcij = x[:, i] - mus_tplus1[:, j]
+            sigmas1d[j] += pzgx[j, i] * np.dot(xcij.T, xcij)
+        sigmas1d[j] *= (1 / np.sum(pzgx[j, :]))
+    sigmas_tplus1 = []
+    for j in range(0, k):
+        sigmas_tplus1.append(sigmas1d[j] * np.eye(d))
+    return sigmas_tplus1
+
+
 def m_step_sigmas(x, pzgx, mus_tplus1):
     n = x.shape[1]
     k = pzgx.shape[0]
@@ -140,8 +123,9 @@ def m_step_sigmas(x, pzgx, mus_tplus1):
     sigmas_tplus1 = []
     for j in range(0, k):
         sigmas_tplus1.append(np.zeros((d, d)))
+    for j in range(0, k):
         for i in range(0, n):
-            xcij = x[:, i] - mus_tplus1[:, j]
+            xcij = (x[:, i] - mus_tplus1[:, j]).reshape(d, 1)
             sigmas_tplus1[j] += pzgx[j, i] * np.dot(xcij, xcij.T)
         sigmas_tplus1[j] *= (1 / np.sum(pzgx[j, :]))
     return sigmas_tplus1
@@ -155,3 +139,35 @@ def m_step(x, pi_t, mus_t, sigmas_t):
     return pi_tplus1, mus_tplus1, sigmas_tplus1
 
 
+def m_step_diag(x, pi_t, mus_t, sigmas_t):
+    pzgx = pz_given_x(x, pi_t, mus_t, sigmas_t)
+    pi_tplus1 = m_step_pi(pzgx)
+    mus_tplus1 = m_step_mus(x, pzgx)
+    sigmas_tplus1 = m_step_sigmas_diag(x, pzgx, mus_tplus1)
+    return pi_tplus1, mus_tplus1, sigmas_tplus1
+
+
+def iterate_em(x, pi_0, mus_0, sigmas_0, maxit, epsilon, diag=False):
+    qexpecs = [np.inf]
+    pi_t, mus_t, sigmas_t = pi_0, mus_0, sigmas_0
+    for t in range (0, maxit):
+        if diag:
+            pi_tplus1, mus_tplus1, sigmas_tplus1 = m_step_diag(x, pi_t, mus_t, sigmas_t)
+        else:
+            pi_tplus1, mus_tplus1, sigmas_tplus1 = m_step(x, pi_t, mus_t, sigmas_t)
+        qexpec = e_computation(x, pi_t, mus_t, sigmas_t, pi_tplus1, mus_tplus1, sigmas_tplus1)
+        qexpecs.append(qexpec)
+        if np.abs(qexpecs[t + 1] - qexpecs[t]) < epsilon:
+            return pi_tplus1, mus_tplus1, sigmas_tplus1, qexpecs[1:]
+        pi_t, mus_t, sigmas_t = pi_tplus1, mus_tplus1, sigmas_tplus1
+        print(t)
+    return pi_tplus1, mus_tplus1, sigmas_tplus1, qexpecs[1:]
+
+
+def assign_cluster(x, pi, mus, sigmas):
+    pzgx = pz_given_x(x, pi, mus, sigmas)
+    maxz = np.argmax(pzgx, axis=0)
+    return maxz
+
+
+# cov[j]=np.sum(tau[:,j] * np.sum((x-np.tensordot(mu[j],np.ones(n),0))**2,axis=0))/(p*np.sum(tau[:,j]))*np.eye(p)
