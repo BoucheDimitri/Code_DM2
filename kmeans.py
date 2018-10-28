@@ -88,13 +88,13 @@ def objective_func(xs, mus, z):
     return obj
 
 
-def compare_several_runs(xs, k, nsims, maxit=50, epsilon=0.1):
+def compare_several_runs(xs, k, nsims, nits=100, epsilon=0.001):
     mus_dict = {}
     objs = []
     for i in range(0, k):
         mus_dict[i] = np.zeros((xs.shape[0], nsims))
     for j in range(0, nsims):
-        mus, z = iterate_kmeans(xs, k, maxit, epsilon)
+        mus, z = iterate_kmeans(xs, k, nits, epsilon)
         print(j)
         objs.append(objective_func(xs, mus, z))
         for i in range(0, k):
@@ -104,4 +104,4 @@ def compare_several_runs(xs, k, nsims, maxit=50, epsilon=0.1):
 
 def plot_centroids(mus_dict, k):
     for i in range(0, k):
-        plt.scatter(mus_dict[i][0, :], mus_dict[i][1, :])
+        plt.scatter(mus_dict[i][0, :], mus_dict[i][1, :], c="k")

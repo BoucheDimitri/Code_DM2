@@ -21,12 +21,16 @@ data_train = pd.read_table(path + "EMGaussian.data", header=None, sep=" ")
 x = data_train.values.T
 
 # Run k-means
-mus, z = kmeans.iterate_kmeans(x, 4, nits=100, epsilon=0.001)
+k = 4
+mus, z = kmeans.iterate_kmeans(x, k, nits=100, epsilon=0.001)
 utils.plot_clusters(x, mus, z)
 
-#
-
-
+# Compare several runs of k-means with different random initializations
+centers, objectives = kmeans.compare_several_runs(x, k, nsims=100, nits=100, epsilon=0.001)
+# Plot the different centers obtained
+kmeans.plot_centroids(centers, k)
+# Plot histogram of distorstion values
+plt.hist(objectives)
 
 
 
