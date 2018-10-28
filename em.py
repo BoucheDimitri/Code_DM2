@@ -67,8 +67,20 @@ def log_pz_given_x(x, pi, mus, sigmas):
     return pzgx
 
 
-def log_gmatrix(x, k, mus, sigmas):
+def log_gmatrix(x, mus, sigmas):
+    """
+    Matrix which entries are the log p(x_i|z=j, mus, sigmas)
+
+    Params:
+        x (np.ndarray): datamatrix (nfeatures, nsamples)
+        mus (np.ndarray): the mus stacked in columns (nfeatures, ngaussians)
+        sigmas (list): list of covariance matrices, len(sigmas) = ngaussians and sigmas[j] = sigma_j
+
+    Returns:
+        np.ndarray: Matrix which entries are the log p(x_i|z=j, mus, sigmas)
+    """
     n = x.shape[1]
+    k = len(sigmas)
     log_pdfs = log_g_pdfs(mus, sigmas)
     gmat = np.zeros((k, n))
     for i in range(0, n):
@@ -78,10 +90,24 @@ def log_gmatrix(x, k, mus, sigmas):
 
 
 def e_computation(x, pi_t, mus_t, sigmas_t, pi_tplus1, mus_tplus1, sigmas_tplus1):
-    k = pi_t.shape[0]
+    """
+    Computation of E_(z | x, mus_tplus1, sigmas_tplus1) [log p(x, z|pi_t, mus_t, sigmas_t)]
+
+    Params:
+        x (np.ndarray): datamatrix (nfeatures, nsamples)
+        pi_t (np.ndarray): multinomial mixture distribution at t (ngaussians, )
+        mus_t (np.ndarray): the mus at t stacked in columns (nfeatures, ngaussians)
+        sigmas_t (list): list of covariance matrices at t, len(sigmas) = ngaussians
+        pi_tplus1 (np.ndarray): multinomial mixture distribution at t + 1 (ngaussians, )
+        mus_tplus1 (np.ndarray): the mus at t + 1 stacked in columns (nfeatures, ngaussians)
+        sigmas_tplus1 (list): list of covariance matrices at t + 1, len(sigmas) = ngaussians
+
+    Returns:
+        float: E_(z | x, mus_tplus1, sigmas_tplus1) [log p(x, z|pi_t, mus_t, sigmas_t)]
+    """
     pzgx = log_pz_given_x(x, pi_t, mus_t, sigmas_t)
     pi_term = np.dot(np.sum(pzgx, axis=1), np.log(pi_tplus1))
-    gmat = log_gmatrix(x, k, mus_tplus1, sigmas_tplus1)
+    gmat = log_gmatrix(x, mus_tplus1, sigmas_tplus1)
     mus_sigs_term = np.sum(gmat * pzgx)
     return pi_term + mus_sigs_term
 
