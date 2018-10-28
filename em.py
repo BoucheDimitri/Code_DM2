@@ -40,7 +40,7 @@ def log_g_pdfs(mus, sigmas):
     return pdfs
 
 
-def log_pz_given_x(x, pi, mus, sigmas):
+def pz_given_x(x, pi, mus, sigmas):
     """
     p(z|x, pi, mus, sigmas)
 
@@ -58,12 +58,16 @@ def log_pz_given_x(x, pi, mus, sigmas):
     pzgx = np.zeros((k, n))
     pdfs = g_pdfs(mus, sigmas)
     for i in range(0, n):
-        sumj = 0
+        # sumj = 0
         for j in range(0, k):
             pzgx_ij = pi[j] * pdfs[j](x[:, i])
+            # print(pzgx_ij)
             pzgx[j, i] = pzgx_ij
-            sumj += pzgx_ij
-        pzgx[:, i] *= (1 / sumj)
+            # sumj += pi[j] * pzgx_ij
+        # pzgx[:, i] *= (1 / sumj)
+    for i in range(0, n):
+        print(np.sum(pzgx[:, i]))
+        pzgx[:, i] *= (1 / np.sum(pzgx[:, i]))
     return pzgx
 
 
@@ -105,9 +109,46 @@ def e_computation(x, pi_t, mus_t, sigmas_t, pi_tplus1, mus_tplus1, sigmas_tplus1
     Returns:
         float: E_(z | x, mus_tplus1, sigmas_tplus1) [log p(x, z|pi_t, mus_t, sigmas_t)]
     """
-    pzgx = log_pz_given_x(x, pi_t, mus_t, sigmas_t)
+    pzgx = pz_given_x(x, pi_t, mus_t, sigmas_t)
     pi_term = np.dot(np.sum(pzgx, axis=1), np.log(pi_tplus1))
     gmat = log_gmatrix(x, mus_tplus1, sigmas_tplus1)
     mus_sigs_term = np.sum(gmat * pzgx)
     return pi_term + mus_sigs_term
+
+
+def m_step_pi(pzgx):
+    pi_tplus1 = (1 / np.sum(pzgx)) * np.sum(pzgx, axis=0)
+    return pi_tplus1
+
+
+def m_step_mus(x, pzgx):
+    d = x.shape[0]
+    k = pzgx.shape[0]
+    mus_tplus1 = np.zeros((d, k))
+    for j in range(0, k):
+        mus_tplus1[:, j] = (1 / np.sum(pzgx[j, :])) * np.sum(pzgx[j, :] * x, axis=1)
+    return mus_tplus1
+
+
+def m_step_sigmas(x, pzgx, mus_tplus1):
+    n = x.shape[1]
+    k = pzgx.shape[0]
+    d = x.shape[0]
+    sigmas_tplus1 = []
+    for j in range(0, k):
+        sigmas_tplus1.append(np.zeros((d, d)))
+        for i in range(0, n):
+            xcij = x[:, i] - mus_tplus1[:, j]
+            sigmas_tplus1[j] += pzgx[j, i] * np.dot(xcij, xcij.T)
+        sigmas_tplus1[j] *= (1 / np.sum(pzgx[j, :]))
+    return sigmas_tplus1
+
+
+def m_step(x, pi_t, mus_t, sigmas_t):
+    pzgx = pz_given_x(x, pi_t, mus_t, sigmas_t)
+    pi_tplus1 = m_step_pi(pzgx)
+    mus_tplus1 = m_step_mus(x, pzgx)
+    sigmas_tplus1 = m_step_sigmas(x, pzgx, mus_tplus1)
+    return pi_tplus1, mus_tplus1, sigmas_tplus1
+
 

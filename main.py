@@ -22,3 +22,4 @@ covs_tplus1.append(0.4*np.eye(2))
 covs_tplus1.append(0.9*np.eye(2))
 
 
+pzgx = pz_given_x(x, pi_t, mus_t, covs_t)
