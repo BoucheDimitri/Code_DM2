@@ -264,3 +264,27 @@ def assign_cluster(x, pi, mus, sigmas):
     pzgx = pz_given_x(x, pi, mus, sigmas)
     maxz = np.argmax(pzgx, axis=0)
     return maxz
+
+
+def log_likelihood(x, z, pi, mus, sigmas):
+    """
+    Fitted likelihood
+
+
+    Params:
+        x (np.ndarray): datamatrix (nfeatures, nsamples)
+        pi (np.ndarray): estimated pi (ngaussians, )
+        mus (np.ndarray): the fitted mus stacked in columns (nfeatures, ngaussians)
+        sigmas (list): list of fitted covariance matrices, len(sigmas) = ngaussians
+
+    Returns:
+        float: the fitted log likelihood
+    """
+    n = x.shape[1]
+    k = mus.shape[1]
+    zmat = np.zeros((k, n))
+    for j in range(0, k):
+        zmat[j, :] = (z == j).astype(int)
+    lgmat = log_gmatrix(x, mus, sigmas)
+    piterm = np.dot(zmat.sum(axis=1), pi)
+    return piterm + np.sum(zmat * lgmat)

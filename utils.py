@@ -106,3 +106,4 @@ def plot_clusters(xs, mus, z, ax):
     for j in range(0, k):
         ax.scatter(xspd[xspd.c == j].x0, xspd[xspd.c == j].x1, s=50)
         ax.scatter(mus[0, j], mus[1, j], c="k", marker="^", s=250)
+

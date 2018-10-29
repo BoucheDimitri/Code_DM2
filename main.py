@@ -53,16 +53,20 @@ pi_diag, mus_diag, sigmas_diag, qs_diag = em.iterate_em(x, pi_0, mus_0, sigmas_0
 # Predict labels using the parameters learned by EM
 ztrain_diag = em.assign_cluster(x, pi_diag, mus_diag, sigmas_diag)
 # Plot the results
-fig2, axes2 = plt.subplots(1, 2)
-utils.plot_clusters_ellipses(x, mus_diag, sigmas_diag, 1.5, ztrain_diag, axes2[0])
+fig2, axes2 = plt.subplots(1, 3, sharey=True)
+utils.plot_clusters_ellipses(x, mus_diag, sigmas_diag, 1.5, ztrain_diag, axes2[1])
 # Predict labels using the parameters learned by EM on all data (train + test)
 zall_diag = em.assign_cluster(xall, pi_diag, mus_diag, sigmas_diag)
 # Plot the results
-utils.plot_clusters(xall, mus_diag, zall_diag, axes2[1])
+utils.plot_clusters(xall, mus_diag, zall_diag, axes2[2])
+utils.plot_clusters(x, mus, z, axes2[0])
+axes2[0].set_title("Kmeans - Train data")
+axes2[1].set_title("EM istotropic - Train data")
+axes2[2].set_title("EM istotropic  - All data")
 
 
 # Run EM with general covariance matrices
-pi, mus, sigmas, qs = em.iterate_em(x, pi_0, mus_0, sigmas_0, 100, 0.0001, diag=False)
+pi, mus, sigmas, qs = em.iterate_em(x, pi_0, mus_0, sigmas_0, 200, 0.00001, diag=False)
 # Predict labels using the parameters learned by EM
 ztrain = em.assign_cluster(x, pi, mus, sigmas)
 # Plot the results
@@ -72,3 +76,18 @@ utils.plot_clusters_ellipses(x, mus, sigmas, 1.5, ztrain, axes3[0])
 zall = em.assign_cluster(xall, pi, mus, sigmas)
 # Plot the results
 utils.plot_clusters(xall, mus, zall, axes3[1])
+axes3[0].set_title("EM general - Train data")
+axes3[1].set_title("EM general - All data")
+
+
+# Likelihood comparison
+llk_train_diag = em.log_likelihood(x, ztrain_diag, pi_diag, mus_diag, sigmas_diag)
+ztest_diag = em.assign_cluster(xtest, pi_diag, mus_diag, sigmas_diag)
+llk_test_diag = em.log_likelihood(xtest, ztest_diag, pi_diag, mus_diag, sigmas_diag)
+llk_train = em.log_likelihood(x, ztrain, pi, mus, sigmas)
+ztest = em.assign_cluster(xtest, pi, mus, sigmas)
+llk_test = em.log_likelihood(xtest, ztest, pi, mus, sigmas)
+print("isotropic/train: llk = " + str(llk_train_diag))
+print("isotropic/test: llk = " + str(llk_test_diag))
+print("general/train: llk = " + str(llk_train))
+print("general/test: llk = " + str(llk_test))
