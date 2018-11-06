@@ -1,3 +1,6 @@
+__author__ = "Dimitri Bouche - dimi.bouche@gmail.com"
+
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import importlib

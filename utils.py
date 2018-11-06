@@ -1,3 +1,6 @@
+__author__ = "Dimitri Bouche - dimi.bouche@gmail.com"
+
+
 import pandas as pd
 import numpy as np
 from matplotlib.patches import Ellipse

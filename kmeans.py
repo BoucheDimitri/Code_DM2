@@ -1,3 +1,6 @@
+__author__ = "Dimitri Bouche - dimi.bouche@gmail.com"
+
+
 import numpy as np
 from scipy.spatial import distance
 import matplotlib.pyplot as plt
